@@ -30,10 +30,13 @@ async function chequearSesion() {
   }
 }
 
-// 2. Iniciar / Registrarse con Google
+// 2. Iniciar / Registrarse con Google (Redirigiendo a Cloudflare Pages)
 async function loginConGoogle() {
   await supabaseClient.auth.signInWithOAuth({
     provider: 'google',
+    options: {
+      redirectTo: 'https://calculadoraprueba.pages.dev'
+    }
   });
 }
 
