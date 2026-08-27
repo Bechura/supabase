@@ -1,5 +1,5 @@
-const SUPABASE_URL = 'TU_SUPABASE_URL_AQUI';
-const SUPABASE_KEY = 'TU_SUPABASE_ANON_KEY_AQUI';
+const SUPABASE_URL = 'https://sbxlrcwonlqppluekcrt.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_xL2hBFPTlX6ANG8uu9KsvA_q6qGYpqr';
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let esPremium = false;
