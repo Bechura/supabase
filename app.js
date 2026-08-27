@@ -2,26 +2,58 @@ const SUPABASE_URL = 'https://sbxlrcwonlqppluekcrt.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_xL2hBFPTlX6ANG8uu9KsvA_q6qGYpqr';
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+let usuarioActual = null;
 let esPremium = false;
 
+const seccionLogin = document.getElementById('seccion-login');
+const seccionApp = document.getElementById('seccion-app');
+const userEmail = document.getElementById('userEmail');
 const form = document.getElementById('notaForm');
 const lista = document.getElementById('listaNotas');
 const contador = document.getElementById('contador');
 const mensajeLimite = document.getElementById('mensajeLimite');
+
+// 1. Chequear si el usuario ya inició sesión al abrir la app
+async function chequearSesion() {
+  const { data: { user } } = await supabaseClient.auth.getUser();
+
+  if (user) {
+    usuarioActual = user;
+    userEmail.textContent = user.email;
+    seccionLogin.classList.add('hidden');
+    seccionApp.classList.remove('hidden');
+    obtenerNotas();
+  } else {
+    usuarioActual = null;
+    seccionLogin.classList.remove('hidden');
+    seccionApp.classList.add('hidden');
+  }
+}
+
+// 2. Iniciar / Registrarse con Google
+async function loginConGoogle() {
+  await supabaseClient.auth.signInWithOAuth({
+    provider: 'google',
+  });
+}
+
+// 3. Cerrar sesión
+async function cerrarSesion() {
+  await supabaseClient.auth.signOut();
+  window.location.reload();
+}
 
 function actualizarPlan() {
   esPremium = document.getElementById('planPremium').checked;
   obtenerNotas();
 }
 
-obtenerNotas();
-
+// 4. Guardar nota asociada a usuario
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
   mensajeLimite.textContent = '';
   const contenido = document.getElementById('textoNota').value;
 
-  // 1. Consultar cantidad actual de notas
   const { data: notasActuales, error: countError } = await supabaseClient
     .from('notas')
     .select('id');
@@ -30,16 +62,18 @@ form.addEventListener('submit', async (e) => {
 
   const limite = esPremium ? 5 : 3;
 
-  // 2. Controlar límite según el plan
   if (notasActuales.length >= limite) {
-    mensajeLimite.textContent = `¡Límite alcanzado! El plan ${esPremium ? 'Premium' : 'Gratuito'} permite hasta ${limite} notas.`;
+    mensajeLimite.textContent = `¡Límite alcanzado! Tu plan ${esPremium ? 'Premium' : 'Gratuito'} permite máximo ${limite} notas.`;
     return;
   }
 
-  // 3. Guardar en Supabase
   const { error } = await supabaseClient
     .from('notas')
-    .insert([{ contenido, es_premium: esPremium }]);
+    .insert([{ 
+      contenido: contenido, 
+      es_premium: esPremium,
+      user_id: usuarioActual.id 
+    }]);
 
   if (error) {
     alert('Error al guardar: ' + error.message);
@@ -49,7 +83,10 @@ form.addEventListener('submit', async (e) => {
   }
 });
 
+// 5. Cargar notas solo del usuario logueado
 async function obtenerNotas() {
+  if (!usuarioActual) return;
+
   const { data, error } = await supabaseClient
     .from('notas')
     .select('*')
@@ -59,10 +96,12 @@ async function obtenerNotas() {
 
   contador.textContent = data.length;
   lista.innerHTML = '';
-  
+
   data.forEach(item => {
     const li = document.createElement('li');
     li.textContent = item.contenido;
     lista.appendChild(li);
   });
 }
+
+chequearSesion();
