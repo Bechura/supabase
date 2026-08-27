@@ -13,13 +13,11 @@ const lista = document.getElementById('listaNotas');
 const contador = document.getElementById('contador');
 const mensajeLimite = document.getElementById('mensajeLimite');
 
-// 1. Chequear si el usuario ya inició sesión al abrir la app
-async function chequearSesion() {
-  const { data: { user } } = await supabaseClient.auth.getUser();
-
-  if (user) {
-    usuarioActual = user;
-    userEmail.textContent = user.email;
+// 1. Escuchar activamente cuando el usuario inicia o cierra sesión
+supabaseClient.auth.onAuthStateChange((event, session) => {
+  if (session && session.user) {
+    usuarioActual = session.user;
+    userEmail.textContent = session.user.email;
     seccionLogin.classList.add('hidden');
     seccionApp.classList.remove('hidden');
     obtenerNotas();
@@ -28,9 +26,9 @@ async function chequearSesion() {
     seccionLogin.classList.remove('hidden');
     seccionApp.classList.add('hidden');
   }
-}
+});
 
-// 2. Iniciar / Registrarse con Google (Redirigiendo a Cloudflare Pages)
+// 2. Iniciar / Registrarse con Google (Redirigiendo a Cloudflare)
 async function loginConGoogle() {
   await supabaseClient.auth.signInWithOAuth({
     provider: 'google',
@@ -57,6 +55,7 @@ form.addEventListener('submit', async (e) => {
   mensajeLimite.textContent = '';
   const contenido = document.getElementById('textoNota').value;
 
+  // Consultar notas solo del usuario actual
   const { data: notasActuales, error: countError } = await supabaseClient
     .from('notas')
     .select('id');
@@ -106,5 +105,3 @@ async function obtenerNotas() {
     lista.appendChild(li);
   });
 }
-
-chequearSesion();
